@@ -5,6 +5,8 @@ DOMAIN="mydomain.tld"
 
 ##Host name (subdomain). Optional. If present, must end with a dot (.)
 HOST="subdomain."
+#subdomain should NOT end with a dot (.)
+SUBDOMAIN="subdomain"
 
 ##APIKEY obtained from Namesilo:
 APIKEY="c40031261ee449037a4b4"
@@ -12,10 +14,10 @@ APIKEY="c40031261ee449037a4b4"
 ## Do not edit lines below ##
 
 ##Saved history pubic IP from last check
-IP_FILE="/var/tmp/MyPubIP"
+IP_FILE="/tmp/MyPubIP"
 
 ##Time IP last updated or 'No IP change' log message output
-IP_TIME="/var/tmp/MyIPTime"
+IP_TIME="/tmp/MyIPTime"
 
 ##How often to output 'No IP change' log messages
 NO_IP_CHANGE_TIME=86400
@@ -60,8 +62,12 @@ if [ "$CUR_IP" != "$KNOWN_IP" ]; then
 
   ##Update DNS record in Namesilo:
   curl -s "https://www.namesilo.com/api/dnsListRecords?version=1&type=xml&key=$APIKEY&domain=$DOMAIN" > $DOMAIN.xml 
-  RECORD_ID=`xmllint --xpath "//namesilo/reply/resource_record/record_id[../host/text() = '$HOST$DOMAIN' ]" $DOMAIN.xml | grep -oP '(?<=<record_id>).*?(?=</record_id>)'`
-  curl -s "https://www.namesilo.com/api/dnsUpdateRecord?version=1&type=xml&key=$APIKEY&domain=$DOMAIN&rrid=$RECORD_ID&rrhost=$HOST&rrvalue=$CUR_IP&rrttl=3600" > $RESPONSE
+  #RECORD_ID=`xmllint --xpath "//namesilo/reply/resource_record/record_id[../host/text() = '$HOST$DOMAIN' ]" $DOMAIN.xml | grep -oP '(?<=<record_id>).*?(?=</record_id>)'`
+  RECORD_ID=`xmllint --xpath "//namesilo/reply/resource_record/record_id[../host/text() = '$HOST$DOMAIN' ]" $DOMAIN.xml  | awk -F "<record_id>" '{print $2}' | awk -F "</record_id" '{print $1}' `
+  #echo "record_id:"$RECORD_ID
+  #curl -s "https://www.namesilo.com/api/dnsUpdateRecord?version=1&type=xml&key=$APIKEY&domain=$DOMAIN&rrid=$RECORD_ID&rrhost=$HOST&rrvalue=$CUR_IP&rrttl=3600" > $RESPONSE
+  curl -s "https://www.namesilo.com/api/dnsUpdateRecord?version=1&type=xml&key=$APIKEY&domain=$DOMAIN&rrid=$RECORD_ID&rrhost=$SUBDOMAIN&rrvalue=$CUR_IP&rrttl=3600" > $RESPONSE
+  #echo "resp:"$RESPONSE
     RESPONSE_CODE=`xmllint --xpath "//namesilo/reply/code/text()"  $RESPONSE`
        case $RESPONSE_CODE in
        300)
